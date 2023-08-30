@@ -134,8 +134,9 @@ class Codegen:
             str(self._amqp_json['major-version']),
             str(self._amqp_json['minor-version']),
             str(self._amqp_json['revision'])]))
-        self.DEPRECATION_WARNING = \
-            'This command is deprecated in AMQP {}'.format(self.AMQP_VERSION)
+        self.DEPRECATION_WARNING = (
+            f'This command is deprecated in AMQP {self.AMQP_VERSION}'
+        )
 
     def build(self):
         self._build_commands()
@@ -163,12 +164,11 @@ class Codegen:
     def _add_documentation(self, label: str, documentation: str,
                            indent: int) -> None:
         if not documentation:
-            self._add_line('"""{}"""'.format(label), indent)
+            self._add_line(f'"""{label}"""', indent)
         else:
             for key, value in sorted(self._commands().items(), reverse=True):
-                documentation = documentation.replace(
-                    ' {} '.format(key), ' :class:`{}` '.format(value))
-            self._add_line('"""{}'.format(label), indent)
+                documentation = documentation.replace(f' {key} ', f' :class:`{value}` ')
+            self._add_line(f'"""{label}', indent)
             self._add_line()
             for line in documentation.split('\n'):
                 self._add_comment(line, indent, '')
@@ -179,25 +179,27 @@ class Codegen:
         """Create a new function"""
         self._add_line()
         if not len(args):
-            self._add_line('def {}(self) -> None:'.format(name), indent)
+            self._add_line(f'def {name}(self) -> None:', indent)
         else:
-            self._add_line('def {}(self,'.format(name), indent)
-            indent += len('def {}('.format(name))
+            self._add_line(f'def {name}(self,', indent)
+            indent += len(f'def {name}(')
             for index, arg in enumerate(args):
                 annotation = self._arg_annotation(arg)
                 default = self._arg_default(arg)
                 if arg['name'] == 'arguments' and default == '{}':
                     default = 'None'
                 if default == 'None' or default is None:
-                    annotation = 'typing.Optional[{}]'.format(annotation)
+                    annotation = f'typing.Optional[{annotation}]'
                 if index == len(args) - 1:
-                    self._add_line('{}: {} = {}) -> None:'.format(
-                        self._arg_name(arg['pyname']),
-                        annotation, default), indent)
+                    self._add_line(
+                        f"{self._arg_name(arg['pyname'])}: {annotation} = {default}) -> None:",
+                        indent,
+                    )
                 else:
-                    self._add_line('{}: {} = {},'.format(
-                        self._arg_name(arg['pyname']),
-                        annotation, default), indent)
+                    self._add_line(
+                        f"{self._arg_name(arg['pyname'])}: {annotation} = {default},",
+                        indent,
+                    )
 
     def _add_line(self, value: str = '', indent: int = 0,
                   secondary_indent: int = 0,
@@ -239,7 +241,8 @@ class Codegen:
 
     def _arg_default(self, arg: dict, repr_=True) -> typing.Optional[str]:
         ext = self._extensions_xml.xpath(
-            '//rabbitmq/field[@name="{}"]'.format(arg['name']))
+            f"""//rabbitmq/field[@name="{arg['name']}"]"""
+        )
         if ext and ext[0].attrib.get('default-value') is not None:
             if repr_ and arg['type'] != 'short' and arg['type'] != 'bit':
                 return '{!r}'.format(ext[0].attrib.get('default-value'))
@@ -251,7 +254,7 @@ class Codegen:
         elif 'domain' in arg:
             domain = self._domain(arg['domain'])
             if domain and domain.name == arg['domain'] \
-                    and domain.default_value is not None:
+                        and domain.default_value is not None:
                 if repr_ and domain.type != 'short' and arg['type'] != 'bit':
                     return '{!r}'.format(domain.default_value)
                 return domain.default_value
@@ -296,13 +299,16 @@ class Codegen:
             indent, indent + 10, width=79)
         self._add_line()
         for arg in properties:
-            label = self._label({'class': class_name, 'field': arg['name']})
-            if label:
-                line = ':param {}: {}'.format(arg['pyname'], label or '')
+            if label := self._label({'class': class_name, 'field': arg['name']}):
+                line = f":param {arg['pyname']}: {label or ''}"
                 self._add_line(line.strip(), indent, indent + 4, width=79)
             else:
-                self._add_line(':param {}: Deprecated, must be empty'.format(
-                    arg['pyname']), indent, indent + 4, width=79)
+                self._add_line(
+                    f":param {arg['pyname']}: Deprecated, must be empty",
+                    indent,
+                    indent + 4,
+                    width=79,
+                )
             if arg['name'] == 'headers':
                 self._add_line(
                     ':type headers: typing.Optional['
@@ -339,37 +345,36 @@ class Codegen:
         flag_value = 15
         self._add_comment('Flag values for marshaling / unmarshaling', indent)
         self._add_line(
-            "flags = {{'{}': {},".format(
-                properties[0]['pyname'], 1 << flag_value), indent)
+            f"flags = {{'{properties[0]['pyname']}': {1 << flag_value},", indent
+        )
         for arg in properties[1:-1]:
             flag_value -= 1
-            self._add_line("'{}': {},".format(arg['pyname'], 1 << flag_value),
-                           indent + 9),
+            (self._add_line(f"'{arg['pyname']}': {1 << flag_value},", indent + 9), )
         flag_value -= 1
-        self._add_line("'{}': {}}}".format(
-            properties[-1]['pyname'], 1 << flag_value),
-            indent + 9)
+        self._add_line(
+            f"'{properties[-1]['pyname']}': {1 << flag_value}}}", indent + 9
+        )
         self._add_line()
-        self._add_line('frame_id = {}  # AMQP Frame ID'.format(class_id),
-                       indent)
+        self._add_line(f'frame_id = {class_id}  # AMQP Frame ID', indent)
         self._add_line(
             'index = 0x%04X  # pamqp Mapping Index' % class_id, indent)
-        self._add_line("name = '{}.Properties'".format(
-            self._pep8_class_name(class_name)), indent)
+        self._add_line(
+            f"name = '{self._pep8_class_name(class_name)}.Properties'", indent
+        )
         self._add_line()
 
         self._add_comment('Class Attribute Types for unmarshaling', indent)
         for arg in properties:
-            self._add_line("_{} = '{}'".format(
-                arg['pyname'], self._arg_type(arg)), indent)
+            self._add_line(f"_{arg['pyname']} = '{self._arg_type(arg)}'", indent)
 
         self._add_function('__init__', properties, indent)
         indent += 4
-        self._add_line('"""Initialize the {}.Properties class"""'.format(
-            self._pep8_class_name(class_name)), indent)
+        self._add_line(
+            f'"""Initialize the {self._pep8_class_name(class_name)}.Properties class"""',
+            indent,
+        )
         for arg in properties:
-            self._add_line('self.{} = {}'.format(
-                arg['pyname'], arg['pyname']), indent)
+            self._add_line(f"self.{arg['pyname']} = {arg['pyname']}", indent)
         self._add_line('self.validate()', indent)
         self._add_line()
 
@@ -668,12 +673,12 @@ class Codegen:
     def _build_commands(self):
         LOGGER.info('Generating %s', COMMANDS)
         self._output_buffer = [COMMANDS_HEADER]
+        indent = 4
         for name in [c['name'] for c in self._amqp_json['classes']
                      if c['name'] not in CODEGEN_IGNORE_CLASSES]:
-            indent = 4
             definition = self._class_definition(name)
             self._add_line()
-            self._add_line('class %s:' % self._pep8_class_name(name))
+            self._add_line(f'class {self._pep8_class_name(name)}:')
 
             documentation = self._documentation({'class': name})
             label = self._label({'class': name}) or 'Undefined label'
@@ -682,8 +687,7 @@ class Codegen:
 
             self._add_line('__slots__: typing.List[str] = []', indent)
             self._add_line()
-            self._add_line('frame_id = {}  # AMQP Frame ID'.format(
-                definition['id']), indent)
+            self._add_line(f"frame_id = {definition['id']}  # AMQP Frame ID", indent)
             self._add_line('index = 0x%08X  # pamqp Mapping Index' % (
                 definition['id'] << 16), indent)
             self._add_line()
@@ -805,29 +809,28 @@ class Codegen:
                     extends = 'AMQPHardError'
                 else:
                     raise ValueError('Unexpected class: %s', constant['class'])
-                self._add_line('class AMQP{}({}):'.format(class_name, extends))
+                self._add_line(f'class AMQP{class_name}({extends}):')
                 self._add_line('    """')
-                documentation = self._documentation(
-                    {'constant': constant['name'].lower()})
-                if documentation:
+                if documentation := self._documentation(
+                    {'constant': constant['name'].lower()}
+                ):
                     self._add_comment(documentation, 4, '')
+                elif extends == 'AMQPSoftError':
+                    self._add_line('    Undocumented AMQP Soft Error')
                 else:
-                    if extends == 'AMQPSoftError':
-                        self._add_line('    Undocumented AMQP Soft Error')
-                    else:
-                        self._add_line('    Undocumented AMQP Hard Error')
+                    self._add_line('    Undocumented AMQP Hard Error')
                 self._add_line()
                 self._add_line('    """')
-                self._add_line("    name = '%s'" % constant['name'])
+                self._add_line(f"    name = '{constant['name']}'")
                 self._add_line('    value = %i' % constant['value'])
                 self._add_line()
                 self._add_line()
                 errors[constant['value']] = class_name
 
-        error_lines = []
-        for error_code in errors.keys():
-            error_lines.append(
-                '          {}: AMQP{},'.format(error_code, errors[error_code]))
+        error_lines = [
+            f'          {error_code}: AMQP{value},'
+            for error_code, value in errors.items()
+        ]
         self._add_comment('AMQP Error code to class mapping')
         error_lines[0] = error_lines[0].replace(
             '          ', 'CLASS_MAPPING = {')
@@ -862,17 +865,14 @@ class Codegen:
 
         """
         commands = {'Basic.Properties': 'Basic.Properties'}
-        for name in set([c['name'] for c in self._amqp_json['classes']
-                         if c['name'] not in CODEGEN_IGNORE_CLASSES]):
+        for name in {c['name'] for c in self._amqp_json['classes']
+                             if c['name'] not in CODEGEN_IGNORE_CLASSES}:
             definition = self._class_definition(name)
             for method in definition['methods']:
                 method_name = '-'.join(
                     [part.title() for part in method['name'].split('-')])
-                command = '{}.{}'.format(name.title(), method_name)
-                if '-' in command:
-                    commands[command] = command.replace('-', '')
-                else:
-                    commands[command] = command
+                command = f'{name.title()}.{method_name}'
+                commands[command] = command.replace('-', '') if '-' in command else command
         return commands
 
     @staticmethod
@@ -912,12 +912,11 @@ class Codegen:
     def _domains(self) -> typing.List[Domain]:
         values = []
         for value in self._amqp_json['domains']:
-            domain = self._codegen_xml.xpath(
-                '//amqp/domain[@name="{}"]'.format(value[0]))
+            domain = self._codegen_xml.xpath(f'//amqp/domain[@name="{value[0]}"]')
             extension = self._extensions_xml.xpath(
-                '//rabbitmq/domain[@name="{}"]'.format(value[0]))
-            doc = self._codegen_xml.xpath(
-                '//amqp/domain[@name="{}"]/doc'.format(value[0]))
+                f'//rabbitmq/domain[@name="{value[0]}"]'
+            )
+            doc = self._codegen_xml.xpath(f'//amqp/domain[@name="{value[0]}"]/doc')
             kwargs = {
                 'name': value[0],
                 'type': value[1],
@@ -932,12 +931,11 @@ class Codegen:
                     if domain else None
             }
             if extension \
-                    and extension[0].attrib.get('default-value') is not None:
+                        and extension[0].attrib.get('default-value') is not None:
                 kwargs['default_value'] = \
-                    extension[0].attrib.get('default-value')
+                        extension[0].attrib.get('default-value')
 
-            for assertion in self._codegen_xml.xpath(
-                    '//amqp/domain[@name="{}"]/assert'.format(value[0])) or []:
+            for assertion in self._codegen_xml.xpath(f'//amqp/domain[@name="{value[0]}"]/assert') or []:
                 if assertion.attrib.get('check') == 'length':
                     kwargs['max_length'] = int(assertion.attrib['value'])
                 elif assertion.attrib.get('check') == 'notnull':
@@ -945,9 +943,7 @@ class Codegen:
                 elif assertion.attrib.get('check') == 'regexp':
                     kwargs['regex'] = assertion.attrib['value']
 
-            for assertion in self._extensions_xml.xpath(
-                    '//rabbitmq/domain[@name="{}"]/assert'.format(
-                        value[0])) or []:
+            for assertion in self._extensions_xml.xpath(f'//rabbitmq/domain[@name="{value[0]}"]/assert') or []:
                 if assertion.attrib.get('check') == 'length':
                     kwargs['max_length'] = int(assertion.attrib['value'])
                 elif assertion.attrib.get('check') == 'notnull':
@@ -960,39 +956,31 @@ class Codegen:
 
     def _label(self, search_path: dict) -> typing.Optional[str]:
         """Attempt to return the short label documentation"""
-        node = self._search_xml(search_path)
-        if node and 'label' in node[0].attrib:
-            return '{}{}'.format(
-                node[0].attrib['label'][0:1].upper(),
-                node[0].attrib['label'][1:])
-        elif node and node[0].text:
-            return '{}{}'.format(node[0].text.strip()[0:1].upper(),
-                                 node[0].text.strip()[1:].strip())
+        if node := self._search_xml(search_path):
+            if 'label' in node[0].attrib:
+                return f"{node[0].attrib['label'][:1].upper()}{node[0].attrib['label'][1:]}"
+            elif node[0].text:
+                return f'{node[0].text.strip()[:1].upper()}{node[0].text.strip()[1:].strip()}'
         if 'field' in search_path:  # Look in domains and extensions
             domain = self._domain(search_path['field'])
             if domain and domain.label:
-                return '{}{}'.format(domain.label[0:1].upper(),
-                                     domain.label[1:].strip())
+                return f'{domain.label[:1].upper()}{domain.label[1:].strip()}'
             node = self._search_xml(search_path, only_extensions=True)
             if node and 'label' in node[0].attrib:
-                return '{}{}'.format(
-                    node[0].attrib['label'][0:1].upper(),
-                    node[0].attrib['label'][1:])
+                return f"{node[0].attrib['label'][:1].upper()}{node[0].attrib['label'][1:]}"
             node = self._search_xml({'field': search_path['field']})
             if node and 'label' in node[0].attrib:
-                return '{}{}'.format(
-                    node[0].attrib['label'][0:1].upper(),
-                    node[0].attrib['label'][1:])
+                return f"{node[0].attrib['label'][:1].upper()}{node[0].attrib['label'][1:]}"
 
         LOGGER.warning('Could not find label for %r', search_path)
 
     @staticmethod
     def _load_codegen_json() -> dict:
         if not CODEGEN_JSON.exists():
-            print('Downloading codegen JSON file to %s.' % CODEGEN_JSON)
+            print(f'Downloading codegen JSON file to {CODEGEN_JSON}.')
             response = requests.get(CODEGEN_JSON_URL)
             if not response.ok:
-                print('Error downloading JSON file: {}'.format(response))
+                print(f'Error downloading JSON file: {response}')
                 sys.exit(1)
             with CODEGEN_JSON.open('w') as handle:
                 handle.write(response.content.decode('utf-8'))
@@ -1005,7 +993,7 @@ class Codegen:
             print('Downloading codegen XML file.')
             response = requests.get(CODEGEN_XML_URL)
             if not response.ok:
-                print('Error downloading XML file: {}'.format(response))
+                print(f'Error downloading XML file: {response}')
                 sys.exit(1)
             with CODEGEN_XML.open('w') as handle:
                 handle.write(response.content.decode('utf-8'))
@@ -1020,16 +1008,14 @@ class Codegen:
 
     def _lookup_field(self, class_name: str, method: str, field: str) -> dict:
         field_def = {}
-        result = self._codegen_xml.xpath(
-            '//amqp/class[@name="{}"]/method[@name="{}"]/'
-            'field[@name="{}"]'.format(class_name, method, field))
-        if result:
+        if result := self._codegen_xml.xpath(
+            f'//amqp/class[@name="{class_name}"]/method[@name="{method}"]/field[@name="{field}"]'
+        ):
             for attribute in result[0].attrib:
                 field_def[attribute] = result[0].attrib[attribute]
-        result = self._extensions_xml.xpath(
-            '//rabbitmq/class[@name="{}"]/method[@name="{}"]/'
-            'field[@name="{}"]'.format(class_name, method, field))
-        if result:
+        if result := self._extensions_xml.xpath(
+            f'//rabbitmq/class[@name="{class_name}"]/method[@name="{method}"]/field[@name="{field}"]'
+        ):
             for attribute in result[0].attrib:
                 field_def[attribute] = result[0].attrib[attribute]
         return field_def
@@ -1037,10 +1023,8 @@ class Codegen:
     @staticmethod
     def _pep8_class_name(value: str) -> str:
         """Returns a class name in the proper case per PEP8"""
-        return_value = []
         parts = value.split('-')
-        for part in parts:
-            return_value.append(part[0:1].upper() + part[1:])
+        return_value = [part[:1].upper() + part[1:] for part in parts]
         return ''.join(return_value)
 
     @staticmethod
@@ -1052,20 +1036,19 @@ class Codegen:
 
     def _search_xml(self, search_path: dict,
                     suffix: typing.Optional[str] = None,
-                    only_extensions: bool = False) \
-            -> typing.Optional[lxml.etree.Element]:
-        search = []
-        for key in XPATH_ORDER:
-            if key in search_path:
-                search.append('%s[@name="%s"]' % (key, search_path[key]))
+                    only_extensions: bool = False) -> typing.Optional[lxml.etree.Element]:
+        search = [
+            f'{key}[@name="{search_path[key]}"]'
+            for key in XPATH_ORDER
+            if key in search_path
+        ]
         if suffix:
             search.append(suffix)
         #  LOGGER.debug('Searching for %s', '/'.join(search))
         if only_extensions:
             return self._extensions_xml.xpath('/'.join(search))
         codegen = self._codegen_xml.xpath('/'.join(search))
-        extension = self._extensions_xml.xpath('/'.join(search))
-        if extension:
+        if extension := self._extensions_xml.xpath('/'.join(search)):
             codegen.extend(extension)
         return codegen
 

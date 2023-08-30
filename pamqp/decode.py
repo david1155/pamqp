@@ -26,7 +26,7 @@ def by_type(value: bytes,
         return bit(value, offset)
     decoder = METHODS.get(data_type)
     if decoder is None:
-        raise ValueError('Unknown type: {}'.format(data_type))
+        raise ValueError(f'Unknown type: {data_type}')
     return decoder(value)
 
 
@@ -55,7 +55,7 @@ def boolean(value: bytes) -> typing.Tuple[int, bool]:
 
     """
     try:
-        return 1, bool(common.Struct.byte.unpack_from(value[0:1])[0])
+        return 1, bool(common.Struct.byte.unpack_from(value[:1])[0])
     except TypeError:
         raise ValueError('Could not unpack boolean value')
 
@@ -69,7 +69,7 @@ def byte_array(value: bytes) -> typing.Tuple[int, bytearray]:
 
     """
     try:
-        length = common.Struct.integer.unpack(value[0:4])[0]
+        length = common.Struct.integer.unpack(value[:4])[0]
         return length + 4, bytearray(value[4:length + 4])
     except TypeError:
         raise ValueError('Could not unpack byte array value')
@@ -84,7 +84,7 @@ def decimal(value: bytes) -> typing.Tuple[int, _decimal.Decimal]:
 
     """
     try:
-        decimals = common.Struct.byte.unpack(value[0:1])[0]
+        decimals = common.Struct.byte.unpack(value[:1])[0]
         raw = common.Struct.integer.unpack(value[1:5])[0]
         return 5, _decimal.Decimal(raw) * (_decimal.Decimal(10)**-decimals)
     except TypeError:
@@ -128,7 +128,7 @@ def long_int(value: bytes) -> typing.Tuple[int, int]:
 
     """
     try:
-        return 4, common.Struct.long.unpack(value[0:4])[0]
+        return 4, common.Struct.long.unpack(value[:4])[0]
     except TypeError:
         raise ValueError('Could not unpack long integer value')
 
@@ -143,7 +143,7 @@ def long_uint(value: bytes) -> typing.Tuple[int, int]:
 
     """
     try:
-        return 4, common.Struct.ulong.unpack(value[0:4])[0]
+        return 4, common.Struct.ulong.unpack(value[:4])[0]
     except TypeError:
         raise ValueError('Could not unpack unsigned long integer value')
 
@@ -158,7 +158,7 @@ def long_long_int(value: bytes) -> typing.Tuple[int, int]:
 
     """
     try:
-        return 8, common.Struct.long_long_int.unpack(value[0:8])[0]
+        return 8, common.Struct.long_long_int.unpack(value[:8])[0]
     except TypeError:
         raise ValueError('Could not unpack long-long integer value')
 
@@ -172,7 +172,7 @@ def long_str(value: bytes) -> typing.Tuple[int, typing.Union[str, bytes]]:
 
     """
     try:
-        length = common.Struct.integer.unpack(value[0:4])[0]
+        length = common.Struct.integer.unpack(value[:4])[0]
         return length + 4, value[4:length + 4].decode('utf-8')
     except TypeError:
         raise ValueError('Could not unpack long string value')
@@ -189,7 +189,7 @@ def octet(value: bytes) -> typing.Tuple[int, int]:
 
     """
     try:
-        return 1, common.Struct.byte.unpack(value[0:1])[0]
+        return 1, common.Struct.byte.unpack(value[:1])[0]
     except TypeError:
         raise ValueError('Could not unpack octet value')
 
@@ -203,7 +203,7 @@ def short_int(value: bytes) -> typing.Tuple[int, int]:
 
     """
     try:
-        return 2, common.Struct.short.unpack_from(value[0:2])[0]
+        return 2, common.Struct.short.unpack_from(value[:2])[0]
     except TypeError:
         raise ValueError('Could not unpack short integer value')
 
@@ -218,7 +218,7 @@ def short_uint(value: bytes) -> typing.Tuple[int, int]:
 
     """
     try:
-        return 2, common.Struct.ushort.unpack_from(value[0:2])[0]
+        return 2, common.Struct.ushort.unpack_from(value[:2])[0]
     except TypeError:
         raise ValueError('Could not unpack unsigned short integer value')
 
@@ -233,7 +233,7 @@ def short_short_int(value: bytes) -> typing.Tuple[int, int]:
 
     """
     try:
-        return 1, common.Struct.short_short_int.unpack_from(value[0:1])[0]
+        return 1, common.Struct.short_short_int.unpack_from(value[:1])[0]
     except TypeError:
         raise ValueError('Could not unpack short-short integer value')
 
@@ -248,7 +248,7 @@ def short_short_uint(value: bytes) -> typing.Tuple[int, int]:
 
     """
     try:
-        return 1, common.Struct.short_short_uint.unpack_from(value[0:1])[0]
+        return 1, common.Struct.short_short_uint.unpack_from(value[:1])[0]
     except TypeError:
         raise ValueError('Could not unpack unsigned short-short integer value')
 
@@ -262,7 +262,7 @@ def short_str(value: bytes) -> typing.Tuple[int, str]:
 
     """
     try:
-        length = common.Struct.byte.unpack(value[0:1])[0]
+        length = common.Struct.byte.unpack(value[:1])[0]
         return length + 1, value[1:length + 1].decode('utf-8')
     except TypeError:
         raise ValueError('Could not unpack short string value')
@@ -277,7 +277,7 @@ def timestamp(value: bytes) -> typing.Tuple[int, datetime.datetime]:
 
     """
     try:
-        temp = common.Struct.timestamp.unpack(value[0:8])
+        temp = common.Struct.timestamp.unpack(value[:8])
         ts_value = temp[0]
 
         # Anything above the year 2106 is likely milliseconds
@@ -300,7 +300,7 @@ def embedded_value(value: bytes) -> typing.Tuple[int, common.FieldValue]:
     if not value:
         return 0, None
     try:
-        bytes_consumed, temp = TABLE_MAPPING[value[0:1]](value[1:])
+        bytes_consumed, temp = TABLE_MAPPING[value[:1]](value[1:])
     except KeyError:
         raise ValueError('Unknown type: {!r}'.format(value[:1]))
     return bytes_consumed + 1, temp
@@ -315,7 +315,7 @@ def field_array(value: bytes) -> typing.Tuple[int, common.FieldArray]:
 
     """
     try:
-        length = common.Struct.integer.unpack(value[0:4])[0]
+        length = common.Struct.integer.unpack(value[:4])[0]
         offset = 4
         data = []
         field_array_end = offset + length
@@ -337,7 +337,7 @@ def field_table(value: bytes) -> typing.Tuple[int, common.FieldTable]:
 
     """
     try:
-        length = common.Struct.integer.unpack(value[0:4])[0]
+        length = common.Struct.integer.unpack(value[:4])[0]
         offset = 4
         data = {}
         field_table_end = offset + length
