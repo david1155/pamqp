@@ -48,7 +48,7 @@ class _AMQData:
 
     def __repr__(self) -> str:
         """Return the representation of the frame object"""
-        return '<{} object at {}>'.format(self.name, hex(id(self)))
+        return f'<{self.name} object at {hex(id(self))}>'
 
     @classmethod
     def amqp_type(cls, attr: str) -> str:
@@ -57,7 +57,7 @@ class _AMQData:
         :param attr: The attribute name
 
         """
-        return getattr(cls, '_' + attr)
+        return getattr(cls, f'_{attr}')
 
     @classmethod
     def attributes(cls) -> list:
@@ -86,16 +86,16 @@ class Frame(_AMQData):
                 byte, offset, processing_bitset = 0, 0, True
             data_value = getattr(self, argument, 0)
             if processing_bitset:
-                if data_type != 'bit':
-                    processing_bitset = False
-                    output.append(encode.octet(byte))
-                else:
+                if data_type == 'bit':
                     byte = encode.bit(data_value, byte, offset)
                     offset += 1
                     if offset == 8:  # pragma: nocover
                         output.append(encode.octet(byte))
                         processing_bitset = False
                     continue  # pragma: nocover
+                else:
+                    processing_bitset = False
+                    output.append(encode.octet(byte))
             output.append(encode.by_type(data_value, data_type))
         if processing_bitset:
             output.append(encode.octet(byte))
@@ -194,7 +194,7 @@ class BasicProperties(_AMQData):
         """
         for property_name in self.__slots__:
             if flags & self.flags[property_name]:
-                data_type = getattr(self.__class__, '_' + property_name)
+                data_type = getattr(self.__class__, f'_{property_name}')
                 consumed, value = decode.by_type(data, data_type)
                 setattr(self, property_name, value)
                 data = data[consumed:]
@@ -209,5 +209,4 @@ class BasicProperties(_AMQData):
         if self.cluster_id != '':
             raise ValueError('cluster_id must be empty')
         if self.delivery_mode is not None and self.delivery_mode not in [1, 2]:
-            raise ValueError('Invalid delivery_mode value: {}'.format(
-                self.delivery_mode))
+            raise ValueError(f'Invalid delivery_mode value: {self.delivery_mode}')

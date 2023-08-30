@@ -99,8 +99,7 @@ class ContentHeader:
         :param data: The raw frame data to unmarshal
 
         """
-        self.class_id, self.weight, self.body_size = struct.unpack(
-            '>HHQ', data[0:12])
+        self.class_id, self.weight, self.body_size = struct.unpack('>HHQ', data[:12])
         offset, flags = self._get_flags(data[12:])
         self.properties.unmarshal(flags, data[12 + offset:])
 

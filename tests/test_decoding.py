@@ -6,8 +6,8 @@ import unittest
 
 from pamqp import decode
 
-PLATFORM_32BIT = (struct.calcsize('P') * 8) == 32
-PLATFORM_64BIT = (struct.calcsize('P') * 8) == 64
+PLATFORM_32BIT = struct.calcsize('P') == 4
+PLATFORM_64BIT = struct.calcsize('P') == 8
 
 
 class CodecDecodeTests(unittest.TestCase):
@@ -101,8 +101,7 @@ class CodecDecodeTests(unittest.TestCase):
 
     def test_decode_double_value(self):
         value = b'@\t!\xf9\xf0\x1b\x86n'
-        self.assertEqual(round(decode.double(value)[1], 5),
-                         round(float(3.14159), 5))
+        self.assertEqual(round(decode.double(value)[1], 5), round(3.14159, 5))
 
     def test_decode_double_invalid_value(self):
         self.assertRaises(ValueError, decode.double, 123)
@@ -126,8 +125,7 @@ class CodecDecodeTests(unittest.TestCase):
 
     def test_decode_floating_point_value(self):
         value = b'@I\x0f\xd0'
-        self.assertEqual(round(decode.floating_point(value)[1], 5),
-                         round(float(3.14159), 5))
+        self.assertEqual(round(decode.floating_point(value)[1], 5), round(3.14159, 5))
 
     def test_decode_long_int_bytes_consumed(self):
         value = b'\x7f\xff\xff\xff'
@@ -382,8 +380,9 @@ class CodecDecodeTests(unittest.TestCase):
 
     def test_decode_by_type_floating_point_value(self):
         value = b'@I\x0f\xd0'
-        self.assertEqual(round(decode.by_type(value, 'float')[1], 5),
-                         round(float(3.14159), 5))
+        self.assertEqual(
+            round(decode.by_type(value, 'float')[1], 5), round(3.14159, 5)
+        )
 
     def test_decode_by_type_long_bytes_consumed(self):
         value = b'\x7f\xff\xff\xff'

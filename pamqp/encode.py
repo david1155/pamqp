@@ -44,9 +44,9 @@ def by_type(value: common.FieldValue, data_type: str) -> bytes:
 
     """
     try:
-        return METHODS[str(data_type)](value)
+        return METHODS[data_type](value)
     except KeyError:
-        raise TypeError('Unknown type: {}'.format(value))
+        raise TypeError(f'Unknown type: {value}')
 
 
 def bit(value: int, byte: int, position: int) -> int:
@@ -68,7 +68,7 @@ def boolean(value: bool) -> bytes:
 
     """
     if not isinstance(value, bool):
-        raise TypeError('bool required, received {}'.format(type(value)))
+        raise TypeError(f'bool required, received {type(value)}')
     return common.Struct.short_short_uint.pack(int(value))
 
 
@@ -80,7 +80,7 @@ def byte_array(value: bytearray) -> bytes:
 
     """
     if not isinstance(value, bytearray):
-        raise TypeError('bytearray required, received {}'.format(type(value)))
+        raise TypeError(f'bytearray required, received {type(value)}')
     return common.Struct.integer.pack(len(value)) + value
 
 
@@ -92,8 +92,7 @@ def decimal(value: _decimal.Decimal) -> bytes:
 
     """
     if not isinstance(value, _decimal.Decimal):
-        raise TypeError('decimal.Decimal required, received {}'.format(
-            type(value)))
+        raise TypeError(f'decimal.Decimal required, received {type(value)}')
     tmp = str(value)
     if '.' in tmp:
         decimals = len(tmp.split('.')[-1])
@@ -111,7 +110,7 @@ def double(value: float) -> bytes:
 
     """
     if not isinstance(value, float):
-        raise TypeError('float required, received {}'.format(type(value)))
+        raise TypeError(f'float required, received {type(value)}')
     return common.Struct.double.pack(value)
 
 
@@ -123,7 +122,7 @@ def floating_point(value: float) -> bytes:
 
     """
     if not isinstance(value, float):
-        raise TypeError('float required, received {}'.format(type(value)))
+        raise TypeError(f'float required, received {type(value)}')
     return common.Struct.float.pack(value)
 
 
@@ -136,7 +135,7 @@ def long_int(value: int) -> bytes:
 
     """
     if not isinstance(value, int):
-        raise TypeError('int required, received {}'.format(type(value)))
+        raise TypeError(f'int required, received {type(value)}')
     elif not (-2147483648 <= value <= 2147483647):
         raise TypeError('Long integer range: -2147483648 to 2147483647')
     return common.Struct.long.pack(value)
@@ -151,7 +150,7 @@ def long_uint(value: int) -> bytes:
 
     """
     if not isinstance(value, int):
-        raise TypeError('int required, received {}'.format(type(value)))
+        raise TypeError(f'int required, received {type(value)}')
     elif not (0 <= value <= 4294967295):
         raise TypeError('Long unsigned-integer range: 0 to 4294967295')
     return common.Struct.ulong.pack(value)
@@ -166,7 +165,7 @@ def long_long_int(value: int) -> bytes:
 
     """
     if not isinstance(value, int):
-        raise TypeError('int required, received {}'.format(type(value)))
+        raise TypeError(f'int required, received {type(value)}')
     elif not (-9223372036854775808 <= value <= 9223372036854775807):
         raise TypeError('long-long integer range: '
                         '-9223372036854775808 to 9223372036854775807')
@@ -191,7 +190,7 @@ def octet(value: int) -> bytes:
 
     """
     if not isinstance(value, int):
-        raise TypeError('int required, received {}'.format(type(value)))
+        raise TypeError(f'int required, received {type(value)}')
     return common.Struct.byte.pack(value)
 
 
@@ -204,7 +203,7 @@ def short_int(value: int) -> bytes:
 
     """
     if not isinstance(value, int):
-        raise TypeError('int required, received {}'.format(type(value)))
+        raise TypeError(f'int required, received {type(value)}')
     elif not (-32768 <= value <= 32767):
         raise TypeError('Short integer range: -32678 to 32767')
     return common.Struct.short.pack(value)
@@ -219,7 +218,7 @@ def short_uint(value: int) -> bytes:
 
     """
     if not isinstance(value, int):
-        raise TypeError('int required, received {}'.format(type(value)))
+        raise TypeError(f'int required, received {type(value)}')
     elif not (0 <= value <= 65535):
         raise TypeError('Short unsigned integer range: 0 to 65535')
     return common.Struct.ushort.pack(value)
@@ -235,8 +234,7 @@ def short_string(value: str) -> bytes:
     return _string(common.Struct.byte, value)
 
 
-def timestamp(value: typing.Union[datetime.datetime, time.struct_time]) \
-        -> bytes:
+def timestamp(value: typing.Union[datetime.datetime, time.struct_time]) -> bytes:
     """Encode a datetime.datetime object or time.struct_time
 
     :param value: Value to encode
@@ -251,8 +249,8 @@ def timestamp(value: typing.Union[datetime.datetime, time.struct_time]) \
     if isinstance(value, time.struct_time):
         return common.Struct.timestamp.pack(calendar.timegm(value))
     raise TypeError(
-        'datetime.datetime or time.struct_time required, received {}'.format(
-            type(value)))
+        f'datetime.datetime or time.struct_time required, received {type(value)}'
+    )
 
 
 def field_array(value: common.FieldArray) -> bytes:
@@ -264,11 +262,8 @@ def field_array(value: common.FieldArray) -> bytes:
 
     """
     if not isinstance(value, list):
-        raise TypeError('list of values required, received {}'.format(
-            type(value)))
-    data = []
-    for item in value:
-        data.append(encode_table_value(item))
+        raise TypeError(f'list of values required, received {type(value)}')
+    data = [encode_table_value(item) for item in value]
     output = b''.join(data)
     return common.Struct.integer.pack(len(output)) + output
 
@@ -284,17 +279,17 @@ def field_table(value: common.FieldTable) -> bytes:
     if not value:  # If there is no value, return a standard 4 null bytes
         return common.Struct.integer.pack(0)
     elif not isinstance(value, dict):
-        raise TypeError('dict required, received {}'.format(type(value)))
+        raise TypeError(f'dict required, received {type(value)}')
     data = []
     for key, value in sorted(value.items()):
         if len(key) > 128:  # field names have 128 char max
             LOGGER.warning('Truncating key %s to 128 bytes', key)
-            key = key[0:128]
+            key = key[:128]
         data.append(short_string(key))
         try:
             data.append(encode_table_value(value))
         except TypeError as err:
-            raise TypeError('{} error: {}/'.format(key, err))
+            raise TypeError(f'{key} error: {err}/')
     output = b''.join(data)
     return common.Struct.integer.pack(len(output)) + output
 
@@ -322,7 +317,7 @@ def table_integer(value: int) -> bytes:
         return b'i' + long_uint(value)
     elif -9223372036854775808 <= value <= 9223372036854775807:
         return b'l' + long_long_int(value)
-    raise TypeError('Unsupported numeric value: {}'.format(value))
+    raise TypeError(f'Unsupported numeric value: {value}')
 
 
 def _deprecated_table_integer(value: int) -> bytes:
@@ -342,7 +337,7 @@ def _deprecated_table_integer(value: int) -> bytes:
         return b'I' + long_int(value)
     elif -9223372036854775808 <= value <= 9223372036854775807:
         return b'l' + long_long_int(value)
-    raise TypeError('Unsupported numeric value: {}'.format(value))
+    raise TypeError(f'Unsupported numeric value: {value}')
 
 
 def _string(encoder: struct.Struct, value: str) -> bytes:
@@ -352,7 +347,7 @@ def _string(encoder: struct.Struct, value: str) -> bytes:
 
     """
     if not isinstance(value, str):
-        raise TypeError('str required, received {}'.format(type(value)))
+        raise TypeError(f'str required, received {type(value)}')
     temp = value.encode('utf-8')
     return encoder.pack(len(temp)) + temp
 

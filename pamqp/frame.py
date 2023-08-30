@@ -38,7 +38,7 @@ def marshal(frame_value: FrameTypes, channel_id: int) -> bytes:
         return _marshal_content_body_frame(frame_value, channel_id)
     elif isinstance(frame_value, heartbeat.Heartbeat):
         return frame_value.marshal()
-    raise ValueError('Could not determine frame type: {}'.format(frame_value))
+    raise ValueError(f'Could not determine frame type: {frame_value}')
 
 
 def unmarshal(data_in: bytes) -> typing.Tuple[int, int, FrameTypes]:
@@ -81,13 +81,14 @@ def unmarshal(data_in: bytes) -> typing.Tuple[int, int, FrameTypes]:
     elif frame_type == constants.FRAME_BODY:
         return byte_count, channel_id, _unmarshal_body_frame(frame_data)
     raise exceptions.UnmarshalingException(
-        'Unknown', 'Unknown frame type: {}'.format(frame_type))
+        'Unknown', f'Unknown frame type: {frame_type}'
+    )
 
 
 def frame_parts(data: bytes) -> typing.Tuple[int, int, typing.Optional[int]]:
     """Attempt to decode a low-level frame, returning frame parts"""
     try:  # Get the Frame Type, Channel Number and Frame Size
-        return struct.unpack('>BHI', data[0:constants.FRAME_HEADER_SIZE])
+        return struct.unpack('>BHI', data[:constants.FRAME_HEADER_SIZE])
     except struct.error:  # Did not receive a full frame
         return UNMARSHAL_FAILURE
 
@@ -118,8 +119,7 @@ def _marshal_method_frame(value: base.Frame, channel_id: int) -> bytes:
                     common.Struct.integer.pack(value.index) + value.marshal())
 
 
-def _unmarshal_protocol_header_frame(data_in: bytes) \
-        -> typing.Optional[header.ProtocolHeader]:
+def _unmarshal_protocol_header_frame(data_in: bytes) -> typing.Optional[header.ProtocolHeader]:
     """Attempt to unmarshal a protocol header frame
 
     The ProtocolHeader is abbreviated in size and functionality compared to
@@ -130,7 +130,7 @@ def _unmarshal_protocol_header_frame(data_in: bytes) \
     :raises: ValueError
 
     """
-    if data_in[0:4] == constants.AMQP:  # Do the first four bytes match?
+    if data_in[:4] == constants.AMQP:  # Do the first four bytes match?
         frame = header.ProtocolHeader()
         frame.unmarshal(data_in)
         return frame
@@ -143,12 +143,13 @@ def _unmarshal_method_frame(frame_data: bytes) -> base.Frame:
     :raises: pamqp.exceptions.UnmarshalingException
 
     """
-    bytes_used, method_index = decode.long_int(frame_data[0:4])
+    bytes_used, method_index = decode.long_int(frame_data[:4])
     try:
         method = commands.INDEX_MAPPING[method_index]()
     except KeyError:
         raise exceptions.UnmarshalingException(
-            'Unknown', 'Unknown method index: {}'.format(str(method_index)))
+            'Unknown', f'Unknown method index: {str(method_index)}'
+        )
     try:
         method.unmarshal(frame_data[bytes_used:])
     except struct.error as error:

@@ -38,14 +38,13 @@ class MarshalingTests(unittest.TestCase):
         self.assertRaises(TypeError, encode.double, '1234')
 
     def test_encode_double(self):
-        self.assertEqual(encode.double(float(3.14159)),
-                         b'@\t!\xf9\xf0\x1b\x86n')
+        self.assertEqual(encode.double(3.14159), b'@\t!\xf9\xf0\x1b\x86n')
 
     def test_encode_floating_point_type(self):
         self.assertRaises(TypeError, encode.floating_point, '1234')
 
     def test_encode_float(self):
-        self.assertEqual(encode.floating_point(float(3.14159)), b'@I\x0f\xd0')
+        self.assertEqual(encode.floating_point(3.14159), b'@I\x0f\xd0')
 
     def test_encode_long_int_wrong_type(self):
         self.assertRaises(TypeError, encode.long_int, 3.141597)

@@ -30,7 +30,7 @@ html_css_files = [
 master_doc = 'index'
 project = 'pamqp'
 release = version = pkg_resources.get_distribution(project).version
-copyright = '2011-{}, Gavin M. Roy'.format(datetime.date.today().year)
+copyright = f'2011-{datetime.date.today().year}, Gavin M. Roy'
 
 extensions = [
     'sphinx.ext.autodoc',
